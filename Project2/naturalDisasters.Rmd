@@ -1,0 +1,79 @@
+---
+title: "Top Natural Disasters And Their Impact"
+author: "Tyler Peterson"
+date: "10/12/2016"
+output: 
+  html_document:
+    keep_md: true
+---
+
+```{r setup, include=FALSE}
+  library(dplyr)
+  setwd("/Users/i64425/GitHub/coursera_5_reproducible_research/Project2")
+```
+
+## Introduction
+
+  Storms and other severe weather events can cause both public health and economic problems for communities and municipalities. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern.
+  
+  This project involves exploring the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. This database tracks characteristics of major storms and weather events in the United States, including when and where they occur, as well as estimates of any fatalities, injuries, and property damage.  The goal of this project is to answer the following two questions:
+  
+  * Across the United States, which types of events (as indicated in the 𝙴𝚅𝚃𝚈𝙿𝙴 variable) are most harmful with respect to population health?
+  
+  * Across the United States, which types of events have the greatest economic consequences?
+
+## Data Pre-Processing and EDA
+
+  The data for this project were downloaded from the following link: <https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2>.
+  
+  Once the data were downloaded, they were read in and examined (code output is not included here)
+
+```{r EDA, echo = TRUE}
+  df <- read.csv("repdata%2Fdata%2FStormData.csv.bz2")
+  #View(df)
+  #str(df)
+  #propdmgexpdistinct <- df %>% distinct(PROPDMGEXP)
+  #propdmgexpdistinct$PROPDMGEXP
+  #distinctEventType <- df %>% distinct(EVTYPE)
+  #distinctEventType$EVTYPE
+  dfMod <- df[,c(8, 23, 24, 25, 27)]
+```
+
+## Data Processing
+
+  Upon examination, the columns that had to do with population health (Fatalities and Injuries) were summed together into a single column labelled **TOTDEST**.  The columns that had to do with economic consequences (PROPDMG and CROPDMG) were also summed together into a single column labelled **TOTDMG**
+
+```{r Data Processing, echo = TRUE}
+  dfMod$TOTDEST <- apply(dfMod[,2:3], 1, FUN = sum)
+  dfMod$TOTDMG <- apply(dfMod[,4:5], 1, FUN = sum)
+```
+
+  Once the data had been aggregated together into the new columns, the values in those columns were summed by event type (EVTYPE) to create totals for each event type.
+
+```{r, echo = TRUE}
+  totByEvent <- sort(tapply(dfMod$TOTDEST, dfMod$EVTYPE, FUN = sum), decreasing = TRUE)
+  totByDmg <- sort(tapply(dfMod$TOTDMG, dfMod$EVTYPE, FUN = sum), decreasing = TRUE)
+  cat(sprintf("List totByEvent contains %d total incidents.", length(totByEvent)))
+  cat(sprintf("List totByDmg contains %d total incidents.", length(totByDmg)))
+```
+
+## Results
+
+  Since each respective list contains `r length(totByEvent)` items, it would be counterproductive to display and report on all incidents in the results.  As such, the top 10 results were plotted and displayed for both population health and economic consequences.
+
+```{r pressure, echo=TRUE}
+  totByEventReduce <- head(as.data.frame(totByEvent), n = 10)
+  totByDmgReduce <- head(as.data.frame(totByDmg), n = 10)
+  names(totByEventReduce) <- c("POP_HEALTH_MAGNITUDE")
+  names(totByDmgReduce) <- c("ECO_DMG_MAGNITUDE")
+
+  plot(totByEventReduce, ylab = "Magnitude of Injuries/Fatalities", xlab = "Disaster Index", 
+       main = "Health Impact of Top 10 Disasters Across the United States")
+  plot(totByDmgReduce, ylab = "Magnitude of Economical Damages", xlab = "Disaster Index", 
+       main = "Economic Impact From Top 10 US Disasters")
+  
+  print(totByEventReduce)
+  print(totByDmgReduce)
+```
+
+  It is evident in both the population health and economic consequences that a single disaster causes significantly more damage than all others.  Indeed, by examining both lists of the top 10 disasters, we can see that tornadoes single handedly cause more physical and economic destruction than any other disaster.
